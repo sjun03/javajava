@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.koreait.spring_boot_study.repository.mapper.PostMapper">
+    <!-- PostJdbcRepo에 있는 rsToPost 메서드와 동일한 역할 -->
+    <resultMap id="postMap" type="com.koreait.spring_boot_study.entity.Post">
+        <!-- PK 매핑 -->
+        <id property="id" column="id" />
+        <!-- 기본 필드 매핑(기본자료형) -->
+        <result property="title" column="title" />
+        <result property="content" column="content" />
+        <!-- 타 엔티티 필드 매핑 (1:N, N:1..)-->
+        <collection property="comments" resultMap="commentMap" javaType="list" />
+    </resultMap>
+    <resultMap id="commentMap" type="com.koreait.spring_boot_study.entity.Comment">
+        <id property="commentId" column="comment_id" />
+        <result property="commentContent" column="comment_content" />
+    </resultMap>
+
+    <!--
+    0. xml과 mapper interface를 연결해주세요.
+    1. ResultMap 정의(Post)를 해주세요.
+    2. SELECT 작성 - findAllPost 완성
+    3. SELECT 작성 - findPostById 완성(리턴 타입이 옵셔널이라도, resultMap으로 지정해주면 됩니다.) -> interface의 시그니처를 따라감
+    -> 인터페이스의 메서드 시그니처를 인식해서 알아서 옵려널로 포장해서 리턴해준다.-->
+    <!--게시글 전체 조회-->
+    <select id="findAllPosts" resultMap="postMap">
+        SELECT
+            id,
+            title,
+            content
+        FROM
+            post
+    </select>
+
+    <!--parameterType을 명시적으로 적어줄 수 있다.-->
+    <!--게시글 단건 조회-->
+    <select id="findPostById" resultMap="postMap">
+        SELECT
+            id,
+            title,
+        FROM
+            post
+        WHERE
+            post_id = #{id}
+    </select>
+
+    <!-- 게시글 작성-->
+    <insert id="insertPost">
+        INSERT INTO
+            post(title, content)
+        VALUES
+            (#{title}, #{content})
+    </insert>
+
+    <!-- 게시글 삭제-->
+    <delete id="deletePostById">
+        DELETE FROM
+            post
+        WHERE
+            id = #{id}
+    </delete>
+
+    <!-- 게시글 수정-->
+    <update id="updatePost">
+        UPDATE
+            post
+        SET
+            title = #{title},
+            content = #{content}
+        WHERE
+            id = #{id}
+    </update>
+
+    <!--게시글 상세 조회-->
+    <select id="searchDetailPosts" resultMap="postMap">
+        SELECT
+            id,
+            title,
+            content
+        FROM
+            post
+        WHERE
+            1 = 1
+            <if test="titleKeyword != null and titleKeyword != ''">
+                AND title LIKE CONCAT('%', #{titleKeyword},'%')
+            </if>
+            <if test="contentKeyword != null and contentKeyword != ''">
+                AND content Like CONCAT('%', #{contentKeyword}, '%')
+            </if>
+        ORDER BY
+            id
+    </select>
+
+    <select id="findPostWithComments" resultMap="postMap">
+        SELECT
+            p.id,
+            p.title,
+            p.content,
+            c.comment_id,
+            c.comment_content
+        FROM
+            post p
+            LEFT JOIN comment c
+                ON p.id = c.post_id
+        WHERE
+            p.id = #{id}
+        ORDER BY
+            c.comment_id
+    </select>
+
+    <!--게시글 다건 조회-->
+    <insert id="insertPosts">
+        INSERT INTO
+            post(title, content)
+        VALUES
+        <foreach collection="posts"  item="post" separator=",">
+            (#{post.title}, #{post.content})
+        </foreach>
+    </insert>
+
+</mapper>

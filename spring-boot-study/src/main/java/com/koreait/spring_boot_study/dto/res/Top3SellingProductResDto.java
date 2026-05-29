@@ -1,0 +1,21 @@
+package com.koreait.spring_boot_study.dto.res;
+
+import com.koreait.spring_boot_study.model.Top3SellingProduct;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class Top3SellingProductResDto {
+    private String productName;
+    private int totalSoldCount;
+    // List<모델> -> List<DTO> 변환
+    // Map 사용
+    
+    // 모델 -> Dto 변환메서드
+    public static Top3SellingProductResDto from(Top3SellingProduct model) {
+        return new Top3SellingProductResDto(model.getProductName(), model.getTotalSoldCount());
+    }
+}

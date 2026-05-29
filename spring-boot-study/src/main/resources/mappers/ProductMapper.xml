@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.koreait.spring_boot_study.repository.mapper.ProductMapper">
+    <!--########################## RESULT_MAP ##########################-->
+    <!--
+     resultMap: 테이블컬럼명과 엔티티클래스 필드를 매핑
+     id: resultMap 식별용, type: entity클래스의 참조경로
+     -->
+    <resultMap id="productMap" type="com.koreait.spring_boot_study.entity.Product">
+        <!--
+        id: pk칼럼과 entity 클래스 필드를 매핑
+        result: 일반칼럼과 entity 클래스 필드를 매핑
+        -->
+        <id property="id" column="product_id"/>
+        <result property="name" column="product_name"/>
+        <result property="price" column="product_price"/>
+        <!--Product entity 필드에 orderDetails(list)를 join을 통해 가져옴
+            orderDetail도 객체로 만들어 와야한다 -> resultMap을 지정을 해준다
+        -->
+        <collection property="orderDetails" resultMap="orderDetailMap" javaType="list"/>
+    </resultMap>
+    <!-- Product + OrderDetail join을 위한 OrderDetail ResultMap
+     -> OrderDetail 객체들을 만들어서 Product 객체에 들어갈 수 있음
+
+     우리가 작성하고 있는 xml파일은 Product위주의 xml파일!
+     -> Product 이외의 entity ResultMap을 작성할때는 join하고 select할 필드만 선언해도 된다
+     -->
+    <resultMap id="orderDetailMap" type="com.koreait.spring_boot_study.entity.OrderDetail">
+        <id property="orderDetailId" column="order_detail_id" />
+        <result property="quantity" column="quantity" />
+    </resultMap>
+
+    <resultMap id="top3Map" type="com.koreait.spring_boot_study.model.Top3SellingProduct">
+        <id property="productId" column="product_id" />
+        <result property="productName" column="product_name" />
+        <result property="totalSoldCount" column="total_sold_count" />
+    </resultMap>
+
+
+    <!--########################## QUERY ##########################-->
+
+    <!--
+    id : mapper 인터페이스에 선언된 메서드 이름
+    resultMap : DB로 부터 받아온 테이블(ResultSet)을 지정한
+    resultMap의 id를 입력하여 연결시킨다.
+    -->
+    <select id="findAllProducts" resultMap="productMap">
+        select
+        product_id,
+        product_name,
+        product_price
+        from
+        product
+    </select>
+    <!-- resultType: 단일컬럼 반환시, 자바 기본 자료형을 지정할 수 있다. -->
+    <select id="findProductNameById" resultMap="productMap">
+        select
+        product_id,
+        product_name,
+        product_price
+        from
+        product
+        where
+        product_id = #{id}
+        <!--매개변수로 넘어온 값을 #{}으로 주입할 수 있다-->
+    </select>
+
+    <insert id="insertProduct">
+        insert into
+        product (product_name, product_price)
+        values
+        (#{name}, #{price})
+    </insert>
+    <update id="updateProduct">
+        update
+        product
+        set
+        product_name = #{name},
+        product_price = #{price}
+        where
+        product_id = #{id}
+    </update>
+    <delete id="deleteProductById">
+        delete from
+        product
+        where
+        product_id = #{id}
+    </delete>
+
+    <!--resultType에는 우리가 정의한 클래스도 지정할 수 있다.-->
+    <!--join 데이터를 가져오는 두가지 방법 -->
+    <!--1. domain model 클래스를 정의하여 resultMap으로 가져오는
+     권장) 집계함수 사용시 -->
+    <!--2. resultMap을 작성하여, 그래프탐색으로 가져오는 방법
+     권장) 조인을 1~3회 할때
+     -->
+    <select id="findTop3SellingProducts"
+            resultMap="top3Map">
+        select
+        p.product_id,
+        p.product_name,
+        sum(od.quantity) as total_sold_count
+        from
+        product p
+        inner join order_details od
+        on p.product_id = od.product_id
+        group by
+        p.product_id,
+        p.product_name
+        order by
+        total_sold_count desc
+        limit 3
+    </select>
+
+    <select id="findProductWithQuantities" resultMap="productMap">
+        select
+        p.product_id,
+        p.product_name,
+        p.product_price,
+        od.order_detail_id,
+        od.quantity
+        from
+        product p
+        left join order_details od
+        on p.product_id = od.product_id
+        where
+        p.product_id = #{productId}
+    </select>
+
+    <select id="searchDetailProducts" resultMap="productMap">
+        select
+        product_id,
+        product_name,
+        product_price
+        from
+        product
+        where
+        1 = 1
+        <!-- 만약에(if) nameKeyword가 존재한다면, 검색 -->
+        <if test="nameKeyword != null and nameKeyword != ''">
+            <!-- CONCAT: sql 함수 - 문자열끼리 합치는 함수 -->
+            and product_name like CONCAT('%', #{nameKeyword} ,'%')
+        </if>
+        <!--
+         xml 에서 where 쿼리 작성시, (<, >) 주의!
+         꺽쇄는 태그로 인식하는 오류가 번번히 발생하니 매우 주의!
+         > : &gt;  >= : &gt;=
+         < : &lt;  <= : &lt;=
+         -->
+        <!-- 만약에(if) minPrice 존재한다면, 필터링 -->
+        <if test="minPrice != null">
+            and product_price &gt;= #{minPrice}
+        </if>
+        <!-- 만약에(if) maxPrice 존재한다면, 필터링 -->
+        <if test="maxPrice != null">
+            and product_price &lt;= #{maxPrice}
+        </if>
+        order by
+        product_id
+    </select>
+
+    <insert id="insertProducts">
+        insert into
+        product (product_name, product_price)
+        values
+        <!-- foreach 사용법
+        - collection: 매개변수로 전달한 list,map,set...
+        - item: 반복문을 돌때 foreach 태그 안에서 list에 있는 요소를 대입받는 변수
+        java와 비교)for(Product p : products) {} ->
+        p: 반복문 돌때 for문 안에서 list에 있는 요소를 대입받는 변수
+        - separator: 반복문 끝날때 추가되는 문자
+        -->
+        <foreach collection="products" item="product" separator=",">
+            (#{product.name} , #{product.price})
+        </foreach>
+    </insert>
+
+</mapper>

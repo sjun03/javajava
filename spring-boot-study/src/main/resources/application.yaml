@@ -1,0 +1,23 @@
+spring:
+  profiles:
+    active: common # 현재 사용할 프로필 설정
+    group: # 특정 프로필을 실행할 때, 같이 실행하게끔 그룹을 지어줄 수 있음
+      common: secret # common이 실행되면, secret 프로필도 같이 실행하세요.
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: common # 이 블록은 common 프로필이 활성화시 로드됩니다.
+
+mybatis:
+  mapper-locations: classpath:mappers/*.xml # mapper의 경로 지정
+  type-aliases-package: com.koreait.spring_boot_study.entity # entity들 경로 지정
+
+  application:
+    name: spring-boot-study
+
+  logging:
+    level:
+      org.apache.ibatis: DEBUG

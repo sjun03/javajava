@@ -1,0 +1,21 @@
+package com.koreait.spring_boot_study.diAndIoc;
+
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public class IocRepository {
+    // 싱글톤 패텅을 적용 -> 객체 하나만 생성하여 돌려씀
+    // 1. 생성자 외부 접근 차단 (private)
+    // 2. 자기 자신의 타입을 static 필드로 가진다.
+    // 3. 외부 접근이 가능한 static 메서드로 단 하나의 객체만 사용하게 설계
+
+    public List<Integer> getScores() {
+        return scores;
+    }
+
+    // DB 대용 데이터
+    private List<Integer> scores = List.of(100, 90, 80, 70);
+
+}
